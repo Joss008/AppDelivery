@@ -13,6 +13,9 @@ public record ActualizarRepartidorRequest(
         String dni,
 
         @Size(max = 20, message = "El teléfono no puede superar 20 caracteres")
-        String telefono
+        String telefono,
+
+        @Size(max = 100, message = "La contraseña no puede superar 100 caracteres")
+        String password
 ) {
 }

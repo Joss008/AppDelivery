@@ -21,6 +21,23 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     List<Pedido> findAllConEmpresaYRepartidor();
 
     @Query("SELECT p FROM Pedido p JOIN FETCH p.empresa LEFT JOIN FETCH p.repartidor "
-            + "WHERE p.empresa.id = :empresaId ORDER BY p.id")
+            + "WHERE p.empresa.id = :empresaId ORDER BY p.id DESC")
     List<Pedido> findByEmpresaIdConRepartidor(@Param("empresaId") Long empresaId);
+
+    @Query("SELECT p FROM Pedido p JOIN FETCH p.empresa LEFT JOIN FETCH p.repartidor "
+            + "WHERE p.empresa.id = :empresaId "
+            + "AND (p.repartidor.id = :repartidorId OR p.repartidor IS NULL) "
+            + "ORDER BY p.id DESC")
+    List<Pedido> findVisiblesParaRepartidor(
+            @Param("empresaId") Long empresaId,
+            @Param("repartidorId") Long repartidorId);
+
+    @Query("SELECT p FROM Pedido p JOIN FETCH p.empresa JOIN FETCH p.repartidor "
+            + "WHERE p.repartidor.id = :repartidorId "
+            + "AND p.estado IN (com.delivery.backend.entity.EstadoPedido.ACEPTADO, "
+            + "com.delivery.backend.entity.EstadoPedido.PREPARANDO, "
+            + "com.delivery.backend.entity.EstadoPedido.LISTO, "
+            + "com.delivery.backend.entity.EstadoPedido.EN_CAMINO) "
+            + "ORDER BY p.id DESC")
+    List<Pedido> findActivosPorRepartidor(@Param("repartidorId") Long repartidorId);
 }

@@ -51,7 +51,14 @@ public class UbicacionService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Pedido no encontrado"));
 
-        if (!currentUser.esAdmin()) {
+        if (currentUser.esRepartidor()) {
+            Repartidor actualRep = currentUser.getRepartidor();
+            if (!actualRep.getId().equals(request.repartidorId())
+                    || !pedido.getEmpresa().getId().equals(actualRep.getEmpresa().getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "No tienes permisos para registrar ubicaciones en este pedido");
+            }
+        } else if (!currentUser.esAdmin()) {
             Long empresaId = empresaPropiaId();
             if (!pedido.getEmpresa().getId().equals(empresaId)) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
@@ -88,14 +95,23 @@ public class UbicacionService {
                     "El repartidor no está asignado a este pedido");
         }
 
+        LocalDateTime ahora = LocalDateTime.now();
+
         Ubicacion ubicacion = new Ubicacion();
         ubicacion.setRepartidor(repartidor);
         ubicacion.setPedido(pedido);
         ubicacion.setLatitud(request.latitud());
         ubicacion.setLongitud(request.longitud());
-        ubicacion.setFechaRegistro(LocalDateTime.now());
+        ubicacion.setFechaRegistro(ahora);
 
         ubicacion = ubicacionRepository.save(ubicacion);
+
+        repartidor.setUltimaLatitud(request.latitud());
+        repartidor.setUltimaLongitud(request.longitud());
+        repartidor.setUltimaUbicacionFecha(ahora);
+        repartidor.setGpsActivo(true);
+        repartidorRepository.save(repartidor);
+
         return toResponse(ubicacion);
     }
 
@@ -103,6 +119,15 @@ public class UbicacionService {
     public List<UbicacionResponse> listar() {
         if (currentUser.esAdmin()) {
             return ubicacionRepository.findAllConRelaciones().stream()
+                    .map(this::toResponse)
+                    .toList();
+        }
+
+        if (currentUser.esRepartidor()) {
+            Repartidor actualRep = currentUser.getRepartidor();
+            return ubicacionRepository.findByEmpresaIdConRelaciones(actualRep.getEmpresa().getId())
+                    .stream()
+                    .filter(u -> u.getRepartidor().getId().equals(actualRep.getId()))
                     .map(this::toResponse)
                     .toList();
         }
@@ -132,7 +157,7 @@ public class UbicacionService {
                 .toList();
     }
 
-    private void validarCoordenadas(BigDecimal latitud, BigDecimal longitud) {
+    public void validarCoordenadas(BigDecimal latitud, BigDecimal longitud) {
         if (latitud.compareTo(new BigDecimal("-90")) < 0
                 || latitud.compareTo(new BigDecimal("90")) > 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -149,6 +174,15 @@ public class UbicacionService {
         Pedido pedido = pedidoRepository.findByIdConEmpresaYRepartidor(pedidoId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Pedido no encontrado"));
+
+        if (currentUser.esRepartidor()) {
+            Repartidor rep = currentUser.getRepartidor();
+            if (!pedido.getEmpresa().getId().equals(rep.getEmpresa().getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "No tienes permisos para acceder a este pedido");
+            }
+            return pedido;
+        }
 
         if (!currentUser.esAdmin()) {
             Long empresaId = empresaPropiaId();
@@ -169,7 +203,7 @@ public class UbicacionService {
                 .getId();
     }
 
-    private UbicacionResponse toResponse(Ubicacion ubicacion) {
+    public UbicacionResponse toResponse(Ubicacion ubicacion) {
         Repartidor repartidor = ubicacion.getRepartidor();
         Pedido pedido = ubicacion.getPedido();
         Empresa empresa = pedido.getEmpresa();

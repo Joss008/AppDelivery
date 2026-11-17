@@ -123,12 +123,14 @@ export interface CrearRepartidorRequest {
   nombre: string;
   dni: string;
   telefono?: string;
+  password?: string;
 }
 
 export interface ActualizarRepartidorRequest {
   nombre: string;
   dni: string;
   telefono?: string;
+  password?: string;
 }
 
 export interface CambiarEstadoRepartidorRequest {
@@ -145,6 +147,10 @@ export interface RepartidorResponse {
   estado: EstadoRepartidor;
   /** ISO 8601 LocalDateTime string */
   fechaRegistro: string;
+  ultimaLatitud?: number | null;
+  ultimaLongitud?: number | null;
+  ultimaUbicacionFecha?: string | null;
+  gpsActivo?: boolean;
 }
 
 // =========================================================
@@ -175,6 +181,8 @@ export interface ActualizarPedidoRequest {
 export interface CambiarEstadoPedidoRequest {
   estado: EstadoPedido;
   observacion?: string;
+  latitud?: number;
+  longitud?: number;
 }
 
 export interface AccionPedidoRequest {
@@ -185,6 +193,8 @@ export interface PedidoResponse {
   id: number;
   empresaId: number;
   nombreComercialEmpresa: string;
+  direccionRecojo?: string | null;
+  telefonoEmpresa?: string | null;
   repartidorId: number | null;
   nombreRepartidor: string | null;
   nombreCliente: string;

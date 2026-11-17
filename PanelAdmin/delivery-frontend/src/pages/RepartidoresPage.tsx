@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { MapPin, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import {
   empresasApi,
   extractApiError,
@@ -43,6 +43,7 @@ export function RepartidoresPage() {
   const [nombre, setNombre] = useState('');
   const [dni, setDni] = useState('');
   const [telefono, setTelefono] = useState('');
+  const [password, setPassword] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
   const [createFields, setCreateFields] = useState<Record<string, string>>({});
 
@@ -54,6 +55,7 @@ export function RepartidoresPage() {
     nombre: '',
     dni: '',
     telefono: '',
+    password: '',
   });
   const [editError, setEditError] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<Record<string, string>>({});
@@ -84,6 +86,7 @@ export function RepartidoresPage() {
       setNombre('');
       setDni('');
       setTelefono('');
+      setPassword('');
       setCreateError(null);
       setCreateFields({});
     },
@@ -147,6 +150,7 @@ export function RepartidoresPage() {
     setNombre('');
     setDni('');
     setTelefono('');
+    setPassword('');
     setCreateError(null);
     setCreateFields({});
     setCreateOpen(true);
@@ -158,6 +162,7 @@ export function RepartidoresPage() {
       nombre: item.nombre,
       dni: item.dni,
       telefono: item.telefono ?? '',
+      password: '',
     });
     setEditError(null);
     setEditFields({});
@@ -179,6 +184,7 @@ export function RepartidoresPage() {
       nombre: nombre.trim(),
       dni: dni.trim(),
       telefono: telefono.trim() || undefined,
+      password: password.trim() || undefined,
     });
   };
 
@@ -194,6 +200,7 @@ export function RepartidoresPage() {
         nombre: editForm.nombre.trim(),
         dni: editForm.dni.trim(),
         telefono: editForm.telefono?.trim() || undefined,
+        password: editForm.password?.trim() || undefined,
       },
     });
   };
@@ -254,6 +261,32 @@ export function RepartidoresPage() {
       render: (item) => (
         <span className="text-slate-700">{item.telefono || '—'}</span>
       ),
+    },
+    {
+      key: 'gps',
+      header: 'Ubicación PWA',
+      render: (item) => {
+        if (item.ultimaLatitud != null && item.ultimaLongitud != null) {
+          return (
+            <div className="flex items-center gap-1.5 text-xs">
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  item.gpsActivo ? 'bg-emerald-500' : 'bg-slate-300'
+                }`}
+              />
+              <span className="text-slate-700 tabular-nums">
+                {item.ultimaLatitud.toFixed(4)}, {item.ultimaLongitud.toFixed(4)}
+              </span>
+            </div>
+          );
+        }
+        return (
+          <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+            <MapPin className="h-3.5 w-3.5" strokeWidth={1.75} />
+            Sin reporte
+          </span>
+        );
+      },
     },
     {
       key: 'estado',
@@ -437,6 +470,16 @@ export function RepartidoresPage() {
             />
           </div>
 
+          <Input
+            label="Contraseña de acceso PWA (opcional)"
+            type="password"
+            placeholder="Dejar en blanco para usar su DNI como clave inicial"
+            helperText="El repartidor iniciará sesión en la PWA con su teléfono o DNI y esta contraseña."
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            error={createFields.password}
+          />
+
           {createError && (
             <div
               role="alert"
@@ -504,6 +547,18 @@ export function RepartidoresPage() {
               error={editFields.telefono}
             />
           </div>
+
+          <Input
+            label="Nueva contraseña PWA (opcional)"
+            type="password"
+            placeholder="Dejar en blanco para conservar la actual"
+            helperText="Ingresa una nueva clave solo si deseas restablecer el acceso del repartidor."
+            value={editForm.password ?? ''}
+            onChange={(e) =>
+              setEditForm((prev) => ({ ...prev, password: e.target.value }))
+            }
+            error={editFields.password}
+          />
 
           {editError && (
             <div

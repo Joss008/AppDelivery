@@ -17,6 +17,8 @@ public record PedidoResponse(
         BigDecimal importe,
         String estado,
         LocalDateTime fechaCreacion,
-        LocalDateTime fechaActualizacion
+        LocalDateTime fechaActualizacion,
+        String direccionRecojo,
+        String telefonoEmpresa
 ) {
 }

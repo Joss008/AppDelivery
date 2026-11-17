@@ -16,8 +16,8 @@ public enum EstadoPedido {
 
     private static final Map<EstadoPedido, Set<EstadoPedido>> TRANSICIONES = Map.of(
             PENDIENTE, EnumSet.of(ACEPTADO, RECHAZADO, CANCELADO),
-            ACEPTADO, EnumSet.of(PREPARANDO, CANCELADO),
-            PREPARANDO, EnumSet.of(LISTO, CANCELADO),
+            ACEPTADO, EnumSet.of(PREPARANDO, LISTO, EN_CAMINO, RECHAZADO, CANCELADO),
+            PREPARANDO, EnumSet.of(LISTO, EN_CAMINO, CANCELADO),
             LISTO, EnumSet.of(EN_CAMINO, CANCELADO),
             EN_CAMINO, EnumSet.of(ENTREGADO, CANCELADO),
             ENTREGADO, EnumSet.noneOf(EstadoPedido.class),

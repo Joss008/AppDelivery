@@ -1,5 +1,6 @@
 package com.delivery.backend.security;
 
+import com.delivery.backend.entity.Repartidor;
 import com.delivery.backend.entity.Usuario;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -33,6 +34,23 @@ public class JwtService {
                 .claim("id", usuario.getId())
                 .claim("nombre", usuario.getNombre())
                 .claim("rol", usuario.getRol().getNombre())
+                .issuedAt(ahora)
+                .expiration(vencimiento)
+                .signWith(secretKey)
+                .compact();
+    }
+
+    public String generarTokenRepartidor(Repartidor repartidor) {
+        Date ahora = new Date();
+        Date vencimiento = new Date(ahora.getTime() + expirationMs);
+
+        return Jwts.builder()
+                .subject("repartidor:" + repartidor.getId())
+                .claim("id", repartidor.getId())
+                .claim("repartidorId", repartidor.getId())
+                .claim("empresaId", repartidor.getEmpresa() != null ? repartidor.getEmpresa().getId() : null)
+                .claim("nombre", repartidor.getNombre())
+                .claim("rol", "REPARTIDOR")
                 .issuedAt(ahora)
                 .expiration(vencimiento)
                 .signWith(secretKey)

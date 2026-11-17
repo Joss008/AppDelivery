@@ -23,4 +23,9 @@ public interface RepartidorRepository extends JpaRepository<Repartidor, Long> {
 
     @Query("SELECT r FROM Repartidor r JOIN FETCH r.empresa ORDER BY r.id")
     List<Repartidor> findAllConEmpresa();
+
+    @Query("SELECT r FROM Repartidor r JOIN FETCH r.empresa "
+            + "WHERE r.dni = :identificador OR r.telefono = :identificador "
+            + "ORDER BY r.id ASC")
+    List<Repartidor> findByIdentificadorConEmpresa(@Param("identificador") String identificador);
 }

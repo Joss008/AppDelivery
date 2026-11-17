@@ -12,6 +12,7 @@ import com.delivery.backend.repository.EmpresaRepository;
 import com.delivery.backend.repository.RepartidorRepository;
 import com.delivery.backend.security.CurrentUser;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -24,13 +25,16 @@ public class RepartidorService {
 
     private final RepartidorRepository repartidorRepository;
     private final EmpresaRepository empresaRepository;
+    private final PasswordEncoder passwordEncoder;
     private final CurrentUser currentUser;
 
     public RepartidorService(RepartidorRepository repartidorRepository,
                              EmpresaRepository empresaRepository,
+                             PasswordEncoder passwordEncoder,
                              CurrentUser currentUser) {
         this.repartidorRepository = repartidorRepository;
         this.empresaRepository = empresaRepository;
+        this.passwordEncoder = passwordEncoder;
         this.currentUser = currentUser;
     }
 
@@ -40,6 +44,11 @@ public class RepartidorService {
             return repartidorRepository.findAllConEmpresa().stream()
                     .map(this::toResponse)
                     .toList();
+        }
+
+        if (currentUser.esRepartidor()) {
+            Repartidor actual = currentUser.getRepartidor();
+            return List.of(toResponse(actual));
         }
 
         Long empresaId = empresaPropiaId();
@@ -63,12 +72,18 @@ public class RepartidorService {
                     "Ya existe un repartidor con ese DNI en la empresa");
         }
 
+        String rawPassword = (request.password() != null && !request.password().isBlank())
+                ? request.password().trim()
+                : request.dni().trim();
+
         Repartidor repartidor = new Repartidor();
         repartidor.setEmpresa(empresa);
-        repartidor.setNombre(request.nombre());
-        repartidor.setDni(request.dni());
-        repartidor.setTelefono(request.telefono());
+        repartidor.setNombre(request.nombre().trim());
+        repartidor.setDni(request.dni().trim());
+        repartidor.setTelefono(request.telefono() != null ? request.telefono().trim() : null);
+        repartidor.setPasswordHash(passwordEncoder.encode(rawPassword));
         repartidor.setEstado(EstadoRepartidor.DISPONIBLE);
+        repartidor.setGpsActivo(false);
         repartidor.setFechaRegistro(LocalDateTime.now());
 
         repartidor = repartidorRepository.save(repartidor);
@@ -86,9 +101,13 @@ public class RepartidorService {
                     "Ya existe un repartidor con ese DNI en la empresa");
         }
 
-        repartidor.setNombre(request.nombre());
-        repartidor.setDni(request.dni());
-        repartidor.setTelefono(request.telefono());
+        repartidor.setNombre(request.nombre().trim());
+        repartidor.setDni(request.dni().trim());
+        repartidor.setTelefono(request.telefono() != null ? request.telefono().trim() : null);
+
+        if (request.password() != null && !request.password().isBlank()) {
+            repartidor.setPasswordHash(passwordEncoder.encode(request.password().trim()));
+        }
 
         repartidor = repartidorRepository.save(repartidor);
         return toResponse(repartidor);
@@ -114,6 +133,7 @@ public class RepartidorService {
     public void eliminar(Long id) {
         Repartidor repartidor = cargarConPermisos(id);
         repartidor.setEstado(EstadoRepartidor.INACTIVO);
+        repartidor.setGpsActivo(false);
         repartidorRepository.save(repartidor);
     }
 
@@ -121,6 +141,15 @@ public class RepartidorService {
         Repartidor repartidor = repartidorRepository.findByIdConEmpresa(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Repartidor no encontrado"));
+
+        if (currentUser.esRepartidor()) {
+            Repartidor actual = currentUser.getRepartidor();
+            if (!repartidor.getId().equals(actual.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "No tienes permisos para acceder a otro repartidor");
+            }
+            return repartidor;
+        }
 
         if (!currentUser.esAdmin()) {
             Long empresaId = empresaPropiaId();
@@ -157,7 +186,7 @@ public class RepartidorService {
                 .getId();
     }
 
-    private RepartidorResponse toResponse(Repartidor repartidor) {
+    public RepartidorResponse toResponse(Repartidor repartidor) {
         Empresa empresa = repartidor.getEmpresa();
         return new RepartidorResponse(
                 repartidor.getId(),
@@ -167,7 +196,11 @@ public class RepartidorService {
                 repartidor.getDni(),
                 repartidor.getTelefono(),
                 repartidor.getEstado().name(),
-                repartidor.getFechaRegistro()
+                repartidor.getFechaRegistro(),
+                repartidor.getUltimaLatitud(),
+                repartidor.getUltimaLongitud(),
+                repartidor.getUltimaUbicacionFecha(),
+                Boolean.TRUE.equals(repartidor.getGpsActivo())
         );
     }
 }

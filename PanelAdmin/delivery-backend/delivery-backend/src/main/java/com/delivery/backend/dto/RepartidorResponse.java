@@ -1,5 +1,6 @@
 package com.delivery.backend.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record RepartidorResponse(
@@ -10,6 +11,10 @@ public record RepartidorResponse(
         String dni,
         String telefono,
         String estado,
-        LocalDateTime fechaRegistro
+        LocalDateTime fechaRegistro,
+        BigDecimal ultimaLatitud,
+        BigDecimal ultimaLongitud,
+        LocalDateTime ultimaUbicacionFecha,
+        Boolean gpsActivo
 ) {
 }
